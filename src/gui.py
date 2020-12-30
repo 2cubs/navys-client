@@ -3,6 +3,7 @@ __author__ = 'Alexey Elizarov (alexei.elizarov@gmail.com)'
 
 from tkinter import Tk
 
+# some tests
 
 class GUI(Tk):
 
