@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Alexey Elizarov (alexei.elizarov@gmail.com)'
 
+
 from gui import GUI
 
 
