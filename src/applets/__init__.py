@@ -1,0 +1,1 @@
+from applets.applet_manager import AppletManagerApplet as AppletManager
