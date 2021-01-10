@@ -2,7 +2,7 @@ PADX = 2
 PADY = 2
 
 
-class BaseApplet:
+class AppletBase:
 
     def __init__(self, model, root):
         self._root = root

@@ -2,13 +2,13 @@ from importlib import import_module
 from tkinter import Frame, LEFT, Y, W, BOTH, RIGHT, VERTICAL, END
 from tkinter.ttk import Treeview, Scrollbar
 
-from applets.base import BaseApplet, PADX, PADY
+from applets.applet_base import AppletBase, PADX, PADY
 
 
-class AppletManagerApplet(BaseApplet):
+class AppletManagerAppletBase(AppletBase):
 
     def __init__(self, model, root):
-        super(AppletManagerApplet, self).__init__(model, root)
+        super(AppletManagerAppletBase, self).__init__(model, root)
         self._model = model
         self._view = AppletManagerFrame(root, self)
         self._tree = self._view.navigation_tree_frame.navigation_tree_view

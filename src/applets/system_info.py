@@ -1,12 +1,12 @@
 from tkinter.ttk import Treeview, Scrollbar
 
-from applets.base import BaseApplet, PADX, PADY
+from applets.applet_base import AppletBase, PADX, PADY
 from tkinter import Frame, VERTICAL, RIGHT, Y, BOTH, END
 
 
-class SystemInfoApplet(BaseApplet):
+class SystemInfoAppletBase(AppletBase):
     def __init__(self, model, root):
-        super(SystemInfoApplet, self).__init__(model, root)
+        super(SystemInfoAppletBase, self).__init__(model, root)
         self._view = SystemInfoFrame(root, self)
 
 

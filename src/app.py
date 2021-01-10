@@ -11,10 +11,11 @@ class App(Tk):
     def __init__(self):
         super(App, self).__init__()
         self._model = Server()
+        self._view = AppletManager(model=self._model, root=self)
         self._build()
 
     def run(self):
-        AppletManager(model=self._model, root=self).run()
+        self._view.run()
         self.mainloop()
 
     def _build(self):
