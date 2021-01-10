@@ -1,1 +1,1 @@
-from applets.applet_manager import AppletManagerAppletBase as AppletManager
+from applets.applet_manager import AppletManagerApplet as AppletManager

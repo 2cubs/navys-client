@@ -5,10 +5,10 @@ from tkinter.ttk import Treeview, Scrollbar
 from applets.applet_base import AppletBase, PADX, PADY
 
 
-class AppletManagerAppletBase(AppletBase):
+class AppletManagerApplet(AppletBase):
 
     def __init__(self, model, root):
-        super(AppletManagerAppletBase, self).__init__(model, root)
+        super(AppletManagerApplet, self).__init__(model, root)
         self._model = model
         self._view = AppletManagerFrame(root, self)
         self._tree = self._view.navigation_tree_frame.navigation_tree_view

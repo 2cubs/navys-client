@@ -4,10 +4,10 @@ from tkinter import Frame, LEFT, END, BOTH, W, X, RIGHT, Y, VERTICAL
 from tkinter.ttk import Treeview, Button, Scrollbar
 
 
-class ServiceControlAppletBase(AppletBase):
+class ServiceControlApplet(AppletBase):
 
     def __init__(self, model, root):
-        super(ServiceControlAppletBase, self).__init__(model, root)
+        super(ServiceControlApplet, self).__init__(model, root)
         self._view = ServiceControlFrame(root, self)
         self._controls = self._view.control_panel_frame
         self._tree = self._view.service_tree_frame.service_tree_view
