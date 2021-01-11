@@ -8,6 +8,9 @@ from server import DummyServer as Server
 
 class App(Tk):
 
+    _min_width = 900
+    _min_height = 700
+
     def __init__(self):
         super(App, self).__init__()
         self._model = Server()
@@ -20,5 +23,5 @@ class App(Tk):
 
     def _build(self):
         self.title('Navy Client')
-        self.geometry('800x600')
-        self.resizable(False, False)
+        self.geometry(f'{self._min_width}x{self._min_height}')
+        self.minsize(self._min_width, self._min_height)

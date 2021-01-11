@@ -1,5 +1,5 @@
 from importlib import import_module
-from tkinter import Frame, LEFT, Y, W, BOTH, RIGHT, VERTICAL, END
+from tkinter import Frame, LEFT, Y, W, BOTH, RIGHT, VERTICAL, END, PanedWindow, HORIZONTAL
 from tkinter.ttk import Treeview, Scrollbar
 
 from applets.applet_base import AppletBase, PADX, PADY
@@ -13,31 +13,37 @@ class AppletManagerApplet(AppletBase):
         self._view = AppletManagerFrame(root, self)
         self._tree = self._view.navigation_tree_frame.navigation_tree_view
         self._frame = self._view.applet_display_frame
+        self._item = None
         self._applet = None
 
-    def _init_applet(self, package):
+    def _init_applet(self, item):
         try:
-            applet = package.replace('_', ' ')
+            applet = item.replace('_', ' ')
             applet = applet.title()
             applet = applet.replace(' ', '')
             applet += 'Applet'
-            module = import_module('.'.join(['applets', package]))
+            module = import_module('.'.join(['applets', item]))
             return getattr(module, applet, None)(self._model, self._frame)
         except ModuleNotFoundError as e:
             raise e
 
     def run_applet(self, event):
-        try:
-            self._applet.close()
-            self._applet = None
-        except Exception as e:
-            print(e)
 
-        try:
-            self._applet = self._init_applet(self._tree.focus())
-            self._applet.run()
-        except ModuleNotFoundError as e:
-            print(e)
+        if self._item != self._tree.focus():
+
+            self._item = self._tree.focus()
+
+            try:
+                self._applet.close()
+                self._applet = None
+            except Exception as e:
+                print(e)
+
+            try:
+                self._applet = self._init_applet(self._item)
+                self._applet.run()
+            except ModuleNotFoundError as e:
+                print(e)
 
 
 class NavigationTreeView(Treeview):
@@ -50,8 +56,7 @@ class NavigationTreeView(Treeview):
     def _build(self):
 
         # Scrollbar initialization
-        # TODO: fix scroll bar
-        scrollbar = Scrollbar(self.master, orient=VERTICAL, command=self.yview)
+        scrollbar = Scrollbar(self, orient=VERTICAL, command=self.yview)
         scrollbar.pack(side=RIGHT, fill=Y)
 
         # TreeView configuration
@@ -74,7 +79,7 @@ class NavigationTreeView(Treeview):
 
 class NavigationTreeFrame(Frame):
     def __init__(self, master, controller):
-        super(NavigationTreeFrame, self).__init__(master, width=200)
+        super(NavigationTreeFrame, self).__init__(master)
         self.navigation_tree_view = NavigationTreeView(self, controller)
         self.navigation_tree_view.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
 
@@ -84,10 +89,10 @@ class AppletDisplayFrame(Frame):
         super(AppletDisplayFrame, self).__init__(master)
 
 
-class AppletManagerFrame(Frame):
+class AppletManagerFrame(PanedWindow):
     def __init__(self, master, controller):
-        super(AppletManagerFrame, self).__init__(master)
+        super(AppletManagerFrame, self).__init__(master, orient=HORIZONTAL)
         self.navigation_tree_frame = NavigationTreeFrame(self, controller)
-        self.navigation_tree_frame.pack(padx=PADX, pady=PADY, fill=Y, anchor=W, side=LEFT)
+        self.add(self.navigation_tree_frame, minsize=200)
         self.applet_display_frame = AppletDisplayFrame(self, controller)
-        self.applet_display_frame.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
+        self.add(self.applet_display_frame)
