@@ -31,7 +31,7 @@ class ServiceControlApplet(AppletBase):
         elif service.sub == 'stopped':
             self._controls.start_stop_button['state'] = NORMAL
             self._controls.start_stop_button['text'] = 'Start'
-            self._controls.rerun_button['state'] = NORMAL
+            self._controls.rerun_button['state'] = DISABLED
 
         if service.active == 'active':
             self._controls.enable_disable_button['state'] = NORMAL
