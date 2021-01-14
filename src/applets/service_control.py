@@ -149,7 +149,7 @@ class ServiceTreeView(Treeview):
         scrollbar.pack(side=RIGHT, fill=Y)
 
         # TreeView configuration
-        self.config(columns=self._columns, yscrollcommand=scrollbar.set)
+        self.config(columns=self._columns, yscrollcommand=scrollbar.set, selectmode='browse')
 
         # Tree initialization
         self.heading('#0', text=self._tree.title())
