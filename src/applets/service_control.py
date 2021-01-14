@@ -182,19 +182,16 @@ class StartStopButton(Button):
 
     def __init__(self, master, controller):
         super(StartStopButton, self).__init__(master)
-        self._controller = controller
-        self.config(text='Start', state=DISABLED, command=self._controller.start_stop_service)
+        self.config(text='Start', state=DISABLED, command=controller.start_stop_service)
 
 
 class RerunButton(Button):
     def __init__(self, master, controller):
         super(RerunButton, self).__init__(master)
-        self._controller = controller
-        self.config(text='Rerun', state=DISABLED, command=self._controller.rerun_service)
+        self.config(text='Rerun', state=DISABLED, command=controller.rerun_service)
 
 
 class EnableDisableButton(Button):
     def __init__(self, master, controller):
         super(EnableDisableButton, self).__init__(master)
-        self._controller = controller
-        self.config(text='Enable', state=DISABLED, command=self._controller.enable_disable_service)
+        self.config(text='Enable', state=DISABLED, command=controller.enable_disable_service)
