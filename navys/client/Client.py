@@ -9,5 +9,5 @@ class Client(ClientBase):
 		pass
 
 	@action
-	def event_service_status_changed(self, service: str, status: str):
-		self.trigger_event(self.EVENT_SERVICE_STATUS_CHANGED, service=service, status=status)
+	def event_service_status_changed(self, service: str, config: str):
+		self.trigger_event(self.EVENT_SERVICE_STATUS_CHANGED, service=service, config=config)
