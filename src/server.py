@@ -1,4 +1,6 @@
 import csv
+from datetime import datetime
+from client.Client import Client
 
 
 class DummyServer:
@@ -6,6 +8,16 @@ class DummyServer:
     def __init__(self):
         self.services = self.get_services()
         self.system = System()
+        self._client = None
+        self._remote = None
+
+    def subscribe(self):
+        self._client = Client.get_instance()
+        self._client.subscribe_to_event(Client.EVENT_SERVICE_STATUS_CHANGED, self.my_event_cb)
+        self._remote = self._client.remote
+
+    def unsubscribe(self):
+        raise NotImplementedError('Not implemented yet.')
 
     def get_service_by_unit(self, unit):
         for service in self.services:
@@ -29,6 +41,11 @@ class DummyServer:
             services.append(Service(**d))
 
         return services
+
+    def my_event_cb(self, service, config):
+        print(
+            f'[{datetime.now()}] Status changed: {service} | started: {config["started"]} | enabled: {config["enabled"]}')
+        print(f'Get repeatedly the config: ', self._remote.service_config(service))
 
 
 class Service:

@@ -4,6 +4,7 @@
 # if __name__ == '__main__':
 #     app = App()
 #     app.run()
+
 from datetime import datetime
 from time import sleep
 
@@ -20,6 +21,7 @@ if __name__ == '__main__':
     app = Client.get_instance()
     app.subscribe_to_event(Client.EVENT_SERVICE_STATUS_CHANGED, my_event_cb)
     remote: Remote = app.remote
+
 
     print(f'Server Time: {remote.server_time()}')
     print(f'Initial Services: {remote.services_list()}')
