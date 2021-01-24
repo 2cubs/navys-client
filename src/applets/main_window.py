@@ -29,7 +29,7 @@ class MainWindow(Tk):
 
     def connect(self):
         try:
-            self._model.subscribe()
+            self._model.connect()
         except Exception as e:
             print(e)
         else:
@@ -40,7 +40,7 @@ class MainWindow(Tk):
 
     def disconnect(self):
         try:
-            self._model.unsubscribe()
+            self._model.disconnect()
         except Exception as e:
             print(e)
         finally:

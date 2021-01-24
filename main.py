@@ -11,10 +11,13 @@ from time import sleep
 from navys.Remote import Remote
 from navys.client.Client import Client
 
+from model.service_manager import Service, ServiceManager
+
 
 def my_event_cb(service, config):
-    print(f'[{datetime.now()}] Status changed: {service} | started: {config["started"]} | enabled: {config["enabled"]}')
-    print(f'Get repeatedly the config: ', remote.service_config(service))
+    pass
+    # print(f'[{datetime.now()}] Status changed: {service} | started: {config["started"]} | enabled: {config["enabled"]}')
+    # print(f'Get repeatedly the config: ', remote.service_config(service))
 
 
 if __name__ == '__main__':
@@ -24,9 +27,38 @@ if __name__ == '__main__':
 
 
     print(f'Server Time: {remote.server_time()}')
-    print(f'Initial Services: {remote.services_list()}')
-    print('Sleep 60 sec')
-    sleep(60)
+
+    services = remote.services_list()
+    for service in services:
+        print(remote.service_status(service))
+
+    # sm = ServiceManager(remote)
+    # sm.update()
+    # for s in sm.services:
+    #     print(s)
+
+
+    # services = remote.services_list()
+    #
+    #
+    # for service in services:
+    #     serv = Service(remote, service)
+    #     serv.update()
+    #     print(serv)
+        # kwargs = remote.service_config(service)
+        # # print(kwargs)
+        # serv = Service(**kwargs)
+        # print(serv)
+    #     print('-'*50)
+
+    # print(remote.service_status(services))
+
+    # print('Sleep 60 sec')
+    # sleep(60)
+
+
+    # servs = remote.service_config(remote.services_list())
+    # print(servs)
 
     # while True:
     #     sleep(1)

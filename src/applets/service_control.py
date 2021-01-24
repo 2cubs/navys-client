@@ -1,3 +1,5 @@
+from time import sleep
+
 from applets.applet_base import AppletBase, PADX, PADY
 
 from tkinter import Frame, LEFT, END, BOTH, W, X, RIGHT, Y, VERTICAL, StringVar, DISABLED, NORMAL
@@ -8,6 +10,8 @@ class ServiceControlApplet(AppletBase):
 
     def __init__(self, model, root):
         super(ServiceControlApplet, self).__init__(model, root)
+        self.model = model.service_manager
+        self.model.update()
         self._view = ServiceControlFrame(root, self)
         self._controls = self._view.control_panel_frame.unit_controls_frame
         self._tree = self._view.service_tree_frame.service_tree_view
@@ -15,38 +19,38 @@ class ServiceControlApplet(AppletBase):
 
     def update_details(self, event):
         item = self._tree.get_item()
-        service = self.model.get_service_by_unit(item['text'])
+        service = self.model.services[item['text']]
         self._update_attribs(service)
         self._update_controls(service)
 
     def _update_attribs(self, service):
-        for key, value in service.__dict__.items():
-            self._attribs[key].set(value)
+        for key in self._attribs:
+            self._attribs[key].set(getattr(service, key, ''))
 
     def _update_controls(self, service):
-        if service.sub == 'running':
+        if service.is_running:
             self._controls.start_stop_button['state'] = NORMAL
             self._controls.start_stop_button['text'] = 'Stop'
             self._controls.rerun_button['state'] = NORMAL
-        elif service.sub == 'stopped':
+        else:
             self._controls.start_stop_button['state'] = NORMAL
             self._controls.start_stop_button['text'] = 'Start'
             self._controls.rerun_button['state'] = DISABLED
 
-        if service.active == 'active':
+        if service.is_active:
             self._controls.enable_disable_button['state'] = NORMAL
             self._controls.enable_disable_button['text'] = 'Disable'
-        elif service.active == 'inactive':
+        else:
             self._controls.enable_disable_button['state'] = NORMAL
             self._controls.enable_disable_button['text'] = 'Enable'
 
     def start_stop_service(self):
         item = self._tree.get_item()
         try:
-            service = self.model.get_service_by_unit(item['text'])
-            if service.sub == 'running':
+            service = self.model.services[item['text']]
+            if service.is_running:
                 service.stop()
-            elif service.sub == 'stopped':
+            else:
                 service.start()
         except Exception as e:
             print(e)
@@ -57,10 +61,10 @@ class ServiceControlApplet(AppletBase):
     def enable_disable_service(self):
         item = self._tree.get_item()
         try:
-            service = self.model.get_service_by_unit(item['text'])
-            if service.active == 'active':
+            service = self.model.services[item['text']]
+            if service.active:
                 service.disable()
-            elif service.active == 'inactive':
+            else:
                 service.enable()
         except Exception as e:
             print(e)
@@ -163,10 +167,10 @@ class ServiceTreeView(Treeview):
         self.column(self._columns[-1], stretch=True)
 
         # Items initialization
-        for service in self._controller.model.services:
+        for key, service in self._controller.model.services.items():
             try:
-                self.insert('', END, iid=getattr(service, self._tree),
-                            text=getattr(service, self._tree),
+                self.insert('', END, iid=key,
+                            text=key,
                             values=[getattr(service, col, None) for col in self._columns])
             except Exception as e:
                 print(e)
