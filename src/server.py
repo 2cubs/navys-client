@@ -8,19 +8,21 @@ from model.service_manager import ServiceManager
 class DummyServer:
 
     def __init__(self):
-        # self.services = self.get_services()
         self.system = System()
-        self._client = None
-        self._remote = None
+        self.client = None
+        self.remote = None
         self.service_manager = None
         self.server_manager = None
 
+    def subscribe(self, event, command):
+        self.client.subscribe_to_event(event, command)
+
     def connect(self):
-        self._client = Client.get_instance()
-        self._client.subscribe_to_event(Client.EVENT_SERVICE_STATUS_CHANGED, self.my_event_cb)
-        self._remote = self._client.remote
-        self.service_manager = ServiceManager(self._remote)
-        self.server_manager = ServerManager(self._remote)
+        self.client = Client.get_instance()
+        # self.client.subscribe_to_event(Client.EVENT_SERVICE_STATUS_CHANGED, self.my_event_cb)
+        self.remote = self.client.remote
+        self.service_manager = ServiceManager(self.remote)
+        self.server_manager = ServerManager(self.remote)
 
     def disconnect(self):
         raise NotImplementedError('Not implemented yet.')

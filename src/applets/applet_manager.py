@@ -2,10 +2,10 @@ from importlib import import_module
 from tkinter import Frame, LEFT, Y, W, BOTH, RIGHT, VERTICAL, END, PanedWindow, HORIZONTAL
 from tkinter.ttk import Treeview, Scrollbar
 
-from applets.applet_base import AppletBase, PADX, PADY
+from applets.applet_base import BaseApplet, PADX, PADY
 
 
-class AppletManagerApplet(AppletBase):
+class AppletManagerApplet(BaseApplet):
 
     def __init__(self, model, root):
         super(AppletManagerApplet, self).__init__(model, root)
@@ -96,3 +96,9 @@ class AppletManagerFrame(PanedWindow):
         self.add(self.navigation_tree_frame, minsize=200)
         self.applet_display_frame = AppletDisplayFrame(self, controller)
         self.add(self.applet_display_frame)
+
+    def start(self):
+        self.pack(fill='both', expand=True)
+
+    def stop(self):
+        self.pack_forget()

@@ -1,139 +1,143 @@
-from time import sleep
+from threading import Thread
 
-from applets.applet_base import AppletBase, PADX, PADY
+from applets.applet_base import BaseApplet, PADX, PADY, BaseView, Refreshable
 
 from tkinter import Frame, LEFT, END, BOTH, W, X, RIGHT, Y, VERTICAL, StringVar, DISABLED, NORMAL
 from tkinter.ttk import Treeview, Button, Scrollbar, Label
 
+from client.Client import Client
 
-class ServiceControlApplet(AppletBase):
+
+class ServiceControlApplet(BaseApplet):
 
     def __init__(self, model, root):
         super(ServiceControlApplet, self).__init__(model, root)
-        self.model = model.service_manager
-        self.model.update()
-        self._view = ServiceControlFrame(root, self)
-        self._controls = self._view.control_panel_frame.unit_controls_frame
-        self._tree = self._view.service_tree_frame.service_tree_view
-        self._attribs = self._view.control_panel_frame.service_details_frame.attribs
+        self._model.subscribe(Client.EVENT_SERVICE_STATUS_CHANGED, self._on_service_update)
+        # FIXME: service_manager must be a model.
+        self.service_manager.initialize()
+        self._view = ServiceControlView(root, self)
 
-    def update_details(self, event):
-        item = self._tree.get_item()
-        service = self.model.services[item['text']]
-        self._update_attribs(service)
-        self._update_controls(service)
+    @property
+    def service_manager(self):
+        return self._model.service_manager
 
-    def _update_attribs(self, service):
-        for key in self._attribs:
-            self._attribs[key].set(getattr(service, key, ''))
+    def _on_service_update(self, service, config):
+        # Update model
+        obj = self.service_manager.update(service, config)
+        # Update view
+        Thread(target=self._view.refresh, args=(obj, )).start()
 
-    def _update_controls(self, service):
-        if service.is_running:
-            self._controls.start_stop_button['state'] = NORMAL
-            self._controls.start_stop_button['text'] = 'Stop'
-            self._controls.rerun_button['state'] = NORMAL
-        else:
-            self._controls.start_stop_button['state'] = NORMAL
-            self._controls.start_stop_button['text'] = 'Start'
-            self._controls.rerun_button['state'] = DISABLED
-
-        if service.is_active:
-            self._controls.enable_disable_button['state'] = NORMAL
-            self._controls.enable_disable_button['text'] = 'Disable'
-        else:
-            self._controls.enable_disable_button['state'] = NORMAL
-            self._controls.enable_disable_button['text'] = 'Enable'
-
-    def start_stop_service(self):
-        item = self._tree.get_item()
+    def start_service(self):
+        service = self.service_manager.services[self._view.item]
         try:
-            service = self.model.services[item['text']]
             if service.is_running:
-                service.stop()
+                Thread(target=service.stop).start()
             else:
-                service.start()
+                Thread(target=service.start).start()
         except Exception as e:
             print(e)
-        else:
-            self._tree.set_item(service)
-            self.update_details(item)
 
-    def enable_disable_service(self):
-        item = self._tree.get_item()
+    def enable_service(self):
+        service = self.service_manager.services[self._view.item]
         try:
-            service = self.model.services[item['text']]
-            if service.active:
-                service.disable()
+            if service.is_active:
+                Thread(target=service.disable).start()
             else:
-                service.enable()
+                Thread(target=service.enable).start()
         except Exception as e:
             print(e)
-        else:
-            self._tree.set_item(service)
-            self.update_details(item)
 
     def rerun_service(self):
-        return NotImplementedError
+        return NotImplemented
+
+    def refresh_view(self, event):
+        service = self.service_manager.services[self._view.item]
+        self._view.refresh(service)
 
 
-class ServiceControlFrame(Frame):
+class ServiceControlView(BaseView):
     def __init__(self, master, controller):
-        super(ServiceControlFrame, self).__init__(master)
-        self.control_panel_frame = ServiceControlPanelFrame(self, controller)
-        self.control_panel_frame.pack(anchor=W, padx=PADX, pady=PADY, fill=X)
-        self.service_tree_frame = ServiceTreeFrame(self, controller)
-        self.service_tree_frame.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
+        super(ServiceControlView, self).__init__(master, controller)
+        self._control_panel_frame = ServiceControlPanelFrame(self, controller)
+        self._service_tree_frame = ServiceTreeFrame(self, controller)
+
+    def refresh(self, service):
+        self._service_tree_frame.refresh(service)
+        if service.unit == self.item:
+            self._control_panel_frame.refresh(service)
+
+    @property
+    def item(self):
+        return self._service_tree_frame.get_item()
 
 
-class ServiceTreeFrame(Frame):
+class ServiceTreeFrame(Frame, Refreshable):
     def __init__(self, master, controller):
         super(ServiceTreeFrame, self).__init__(master)
-        self.service_tree_view = ServiceTreeView(self, controller)
-        self.service_tree_view.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
+        self._service_tree_view = ServiceTreeView(self, controller)
+        self.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
+
+    def refresh(self, service):
+        self._service_tree_view.refresh(service)
+
+    def get_item(self):
+        return self._service_tree_view.get_item()
 
 
-class ServiceDetailsFrame(Frame):
+class ServiceDetailsFrame(Frame, Refreshable):
 
-    _attribs = ['unit', 'load', 'active', 'sub', 'description']
+    _details = ['unit', 'load', 'active', 'sub', 'description']
 
     def __init__(self, master, controller):
         super(ServiceDetailsFrame, self).__init__(master)
-        self.attribs = {}
+        self._vars = {}
 
-        for i in range(len(self._attribs)):
-            text = self._attribs[i]
+        for i in range(len(self._details)):
+            text = self._details[i]
             text = text.title()
             text += ':'
             var = StringVar()
             Label(self, text=text).grid(column=0, row=i, sticky=W)
             Label(self, textvariable=var).grid(column=1, row=i, sticky=W)
-            self.attribs[self._attribs[i]] = var
+            self._vars[self._details[i]] = var
+
+        self.pack(fill=BOTH, padx=PADX, pady=PADY)
+
+    def refresh(self, service):
+        for var in self._vars:
+            self._vars[var].set(getattr(service, var, ''))
 
 
-class ServiceControlsFrame(Frame):
+class ServiceControlsFrame(Frame, Refreshable):
     def __init__(self, master, controller):
         super(ServiceControlsFrame, self).__init__(master)
-        self.start_stop_button = StartStopButton(self, controller)
-        self.start_stop_button.pack(side=LEFT, padx=PADX, pady=PADY)
-        self.rerun_button = RerunButton(self, controller)
-        self.rerun_button.pack(side=LEFT, padx=PADX, pady=PADY)
-        self.enable_disable_button = EnableDisableButton(self, controller)
-        self.enable_disable_button.pack(side=LEFT, padx=PADX, pady=PADY)
+        self._start_button = StartButton(self, controller)
+        self._rerun_button = RerunButton(self, controller)
+        self._enable_button = EnableButton(self, controller)
+        self.pack(fill=BOTH, padx=PADX, pady=PADY)
+
+    def refresh(self, service):
+        self._start_button.refresh(service.is_running)
+        self._rerun_button.refresh(service.is_running)
+        self._enable_button.refresh(service.is_active)
 
 
-class ServiceControlPanelFrame(Frame):
+class ServiceControlPanelFrame(Frame, Refreshable):
     def __init__(self, master, controller):
         super(ServiceControlPanelFrame, self).__init__(master)
-        self.service_details_frame = ServiceDetailsFrame(self, controller)
-        self.service_details_frame.pack(fill=BOTH, padx=PADX, pady=PADY)
-        self.unit_controls_frame = ServiceControlsFrame(self, controller)
-        self.unit_controls_frame.pack(fill=BOTH, padx=PADX, pady=PADY)
+        self._service_details_frame = ServiceDetailsFrame(self, controller)
+        self._service_controls_frame = ServiceControlsFrame(self, controller)
+        self.pack(anchor=W, padx=PADX, pady=PADY, fill=X)
+
+    def refresh(self, service):
+        self._service_details_frame.refresh(service)
+        self._service_controls_frame.refresh(service)
 
 
-class ServiceTreeView(Treeview):
+class ServiceTreeView(Treeview, Refreshable):
 
-    _tree = 'unit'
-    _columns = ['load', 'active', 'sub', 'description']
+    _iid = 'unit'
+    _headings = ['load', 'active', 'sub', 'description']
 
     def __init__(self, master, controller):
         super(ServiceTreeView, self).__init__(master)
@@ -141,10 +145,10 @@ class ServiceTreeView(Treeview):
         self._build()
 
     def get_item(self):
-        return self.item(self.focus())
+        return self.item(self.focus(), 'text')
 
-    def set_item(self, obj):
-        self.item(self.focus(), values=[getattr(obj, col, None) for col in self._columns])
+    def refresh(self, service):
+        self.item(getattr(service, self._iid), values=[getattr(service, col, None) for col in self._headings])
 
     def _build(self):
 
@@ -153,25 +157,25 @@ class ServiceTreeView(Treeview):
         scrollbar.pack(side=RIGHT, fill=Y)
 
         # TreeView configuration
-        self.config(columns=self._columns, yscrollcommand=scrollbar.set, selectmode='browse')
+        self.config(columns=self._headings, yscrollcommand=scrollbar.set, selectmode='browse')
 
         # Tree initialization
-        self.heading('#0', text=self._tree.title())
+        self.heading('#0', text=self._iid.title())
         self.column('#0', width=150, stretch=False)
 
         # Columns initialization
-        for column in self._columns:
+        for column in self._headings:
             self.heading(column, text=column.title())
             self.column(column, width=100, stretch=False)
 
-        self.column(self._columns[-1], stretch=True)
+        self.column(self._headings[-1], stretch=True)
 
         # Items initialization
-        for key, service in self._controller.model.services.items():
+        for key, service in self._controller.service_manager.services.items():
             try:
                 self.insert('', END, iid=key,
                             text=key,
-                            values=[getattr(service, col, None) for col in self._columns])
+                            values=[getattr(service, col, None) for col in self._headings])
             except Exception as e:
                 print(e)
 
@@ -179,23 +183,47 @@ class ServiceTreeView(Treeview):
         self.focus(self.get_children()[0])
 
         # Bindings
-        self.bind('<<TreeviewSelect>>', self._controller.update_details)
+        self.bind('<<TreeviewSelect>>', self._controller.refresh_view)
+
+        # Register
+        self.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
 
 
-class StartStopButton(Button):
+class StartButton(Button, Refreshable):
 
     def __init__(self, master, controller):
-        super(StartStopButton, self).__init__(master)
-        self.config(text='Start', state=DISABLED, command=controller.start_stop_service)
+        super(StartButton, self).__init__(master)
+        self.config(text='Start', state=DISABLED, command=controller.start_service)
+        self.pack(side=LEFT, padx=PADX, pady=PADY)
+
+    def refresh(self, switched):
+        if switched:
+            self.config(state=NORMAL, text='Stop')
+        else:
+            self.config(state=NORMAL, text='Start')
 
 
-class RerunButton(Button):
+class RerunButton(Button, Refreshable):
     def __init__(self, master, controller):
         super(RerunButton, self).__init__(master)
         self.config(text='Rerun', state=DISABLED, command=controller.rerun_service)
+        self.pack(side=LEFT, padx=PADX, pady=PADY)
+
+    def refresh(self, switched):
+        if switched:
+            self.config(state=NORMAL)
+        else:
+            self.config(state=DISABLED)
 
 
-class EnableDisableButton(Button):
+class EnableButton(Button, Refreshable):
     def __init__(self, master, controller):
-        super(EnableDisableButton, self).__init__(master)
-        self.config(text='Enable', state=DISABLED, command=controller.enable_disable_service)
+        super(EnableButton, self).__init__(master)
+        self.config(text='Enable', state=DISABLED, command=controller.enable_service)
+        self.pack(side=LEFT, padx=PADX, pady=PADY)
+
+    def refresh(self, switched):
+        if switched:
+            self.config(state=NORMAL, text='Disable')
+        else:
+            self.config(state=NORMAL, text='Enable')
