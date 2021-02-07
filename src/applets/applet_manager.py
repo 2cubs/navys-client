@@ -77,7 +77,7 @@ class NavigationTreeView(Treeview):
         self.column('#0', width=200)
 
         self.insert('', END, iid='service_control', text='Services')
-        self.insert('', END, iid='server_info', text='Server info')
+        self.insert('', END, iid='server_info', text='System')
         self.insert('', END, iid='user_management', text='Users')
         self.insert('', END, iid='backing_up_planning', text='Back-ups')
 

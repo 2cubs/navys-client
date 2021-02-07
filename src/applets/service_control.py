@@ -12,19 +12,14 @@ class Service:
     def __init__(self, instance, name):
         self._instance = instance
         self._name = name
-        self.update()
+        self.update(self._instance.remote.service_config(self._name))
 
     def __str__(self):
         return str(self.__dict__)
 
-    def update(self, attributes=None):
-
-        if not attributes:
-            attributes = self._instance.remote.service_config(self._name)
-
+    def update(self, attributes):
         for key, value in attributes.items():
             setattr(self, f'_{key}', value)
-
         return self
 
     @property
