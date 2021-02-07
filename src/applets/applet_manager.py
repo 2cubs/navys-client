@@ -1,56 +1,68 @@
 from importlib import import_module
-from tkinter import Frame, LEFT, Y, W, BOTH, RIGHT, VERTICAL, END, PanedWindow, HORIZONTAL
-from tkinter.ttk import Treeview, Scrollbar
+from tkinter import PanedWindow, Frame, Scrollbar, VERTICAL, RIGHT, Y, BOTH, END
+from tkinter.ttk import Treeview
 
-from applets.applet_base import BaseApplet, PADX, PADY
+from applets import PADX, PADY
+from applets.base import BaseView
+from applets.base import BaseController
 
 
-class AppletManagerApplet(BaseApplet):
+class AppletManagerModel:
 
-    def __init__(self, model, root):
-        super(AppletManagerApplet, self).__init__(model, root)
-        self._model = model
-        self._view = AppletManagerFrame(root, self)
-        self._tree = self._view.navigation_tree_frame.navigation_tree_view
-        self._frame = self._view.applet_display_frame
-        self._item = None
-        self._applet = None
+    def __init__(self, instance):
+        self.applet = None
+        self.instance = instance
 
-    def _init_applet(self, item):
+    @staticmethod
+    def get_applet(applet):
         try:
-            applet = item.replace('_', ' ')
+            module = import_module('.'.join(['applets', applet]))
+            applet = applet.replace('_', ' ')
             applet = applet.title()
             applet = applet.replace(' ', '')
-            applet += 'Applet'
-            module = import_module('.'.join(['applets', item]))
-            return getattr(module, applet, None)(self._model, self._frame)
+            applet += 'Controller'
+            return getattr(module, applet, None)
         except ModuleNotFoundError as e:
             raise e
 
-    def run_applet(self, event):
 
-        if self._item != self._tree.focus():
+class AppletManagerView(BaseView):
 
-            self._item = self._tree.focus()
+    def __init__(self, controller):
+        super(AppletManagerView, self).__init__(controller)
+        self._paned_window = AppletManagerPanedWindow(self, controller)
 
-            try:
-                self._applet.close()
-                self._applet = None
-            except Exception as e:
-                print(e)
+    @property
+    def applet_display_frame(self):
+        return self._paned_window.applet_display_frame
 
-            try:
-                self._applet = self._init_applet(self._item)
-                self._applet.run()
-            except ModuleNotFoundError as e:
-                print(e)
+
+class AppletManagerController(BaseController):
+
+    _model_cls = AppletManagerModel
+    _view_cls = AppletManagerView
+
+    def start_applet(self, applet):
+        self.stop_applet()
+        try:
+            self._model.applet = self._model.get_applet(applet)
+        except Exception as e:
+            print(e)
+        else:
+            self._model.applet = self._model.applet(self._view.applet_display_frame, instance=self._model.instance)
+            self._model.applet.start()
+
+    def stop_applet(self):
+        try:
+            self._model.applet = self._model.applet.stop()
+        except Exception as e:
+            print(e)
 
 
 class NavigationTreeView(Treeview):
     def __init__(self, master, controller):
         super(NavigationTreeView, self).__init__(master)
         self._controller = controller
-        self._master = master
         self._build()
 
     def _build(self):
@@ -65,7 +77,7 @@ class NavigationTreeView(Treeview):
         self.column('#0', width=200)
 
         self.insert('', END, iid='service_control', text='Services')
-        self.insert('', END, iid='system_info', text='System')
+        self.insert('', END, iid='server_info', text='Server info')
         self.insert('', END, iid='user_management', text='Users')
         self.insert('', END, iid='backing_up_planning', text='Back-ups')
 
@@ -74,31 +86,36 @@ class NavigationTreeView(Treeview):
         self.focus(item)
 
         # Bindings
-        self.bind('<<TreeviewSelect>>', self._controller.run_applet)
+        self.bind('<<TreeviewSelect>>', self._start_applet)
+
+        # Pack
+        self.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
+
+    def _start_applet(self, event):
+        self._controller.start_applet(self.focus())
 
 
 class NavigationTreeFrame(Frame):
     def __init__(self, master, controller):
         super(NavigationTreeFrame, self).__init__(master)
-        self.navigation_tree_view = NavigationTreeView(self, controller)
-        self.navigation_tree_view.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
+        self._navigation_tree_view = NavigationTreeView(self, controller)
 
 
 class AppletDisplayFrame(Frame):
-    def __init__(self, master, controller):
+    def __init__(self, master):
         super(AppletDisplayFrame, self).__init__(master)
+        self.pack()
 
 
-class AppletManagerFrame(PanedWindow):
+class AppletManagerPanedWindow(PanedWindow):
     def __init__(self, master, controller):
-        super(AppletManagerFrame, self).__init__(master, orient=HORIZONTAL)
-        self.navigation_tree_frame = NavigationTreeFrame(self, controller)
-        self.add(self.navigation_tree_frame, minsize=200)
-        self.applet_display_frame = AppletDisplayFrame(self, controller)
-        self.add(self.applet_display_frame)
-
-    def start(self):
+        super(AppletManagerPanedWindow, self).__init__(master)
+        self._navigation_tree_frame = NavigationTreeFrame(self, controller)
+        self._applet_display_frame = AppletDisplayFrame(self)
+        self.add(self._navigation_tree_frame, minsize=200)
+        self.add(self._applet_display_frame)
         self.pack(fill='both', expand=True)
 
-    def stop(self):
-        self.pack_forget()
+    @property
+    def applet_display_frame(self):
+        return self._applet_display_frame

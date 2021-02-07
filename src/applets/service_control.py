@@ -1,29 +1,141 @@
 from threading import Thread
 
-from applets.applet_base import BaseApplet, PADX, PADY, BaseView, Refreshable
+from applets import PADX, PADY
+from applets.base import BaseController, BaseView, Refreshable
 
 from tkinter import Frame, LEFT, END, BOTH, W, X, RIGHT, Y, VERTICAL, StringVar, DISABLED, NORMAL
 from tkinter.ttk import Treeview, Button, Scrollbar, Label
 
-from client.Client import Client
+
+class Service:
+
+    def __init__(self, instance, name):
+        self._instance = instance
+        self._name = name
+        self.update()
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def update(self, attributes=None):
+
+        if not attributes:
+            attributes = self._instance.remote.service_config(self._name)
+
+        for key, value in attributes.items():
+            setattr(self, f'_{key}', value)
+
+        return self
+
+    @property
+    def is_running(self):
+        return getattr(self, '_started', False)
+
+    @property
+    def is_active(self):
+        return getattr(self, '_enabled', False)
+
+    @property
+    def unit(self):
+        return getattr(self, '_name')
+
+    @property
+    def load(self):
+        return 'loaded'
+
+    @property
+    def active(self):
+        if self.is_active:
+            return 'active'
+        return 'inactive'
+
+    @property
+    def sub(self):
+        if self.is_running:
+            return 'running'
+        return 'stopped'
+
+    @property
+    def description(self):
+        return getattr(self, '_description', '')
+
+    def start(self):
+        try:
+            self._instance.remote.service_start(self._name)
+        except Exception as e:
+            print(e)
+
+    def stop(self):
+        try:
+            self._instance.remote.service_stop(self._name)
+        except Exception as e:
+            print(e)
+
+    def enable(self):
+        try:
+            self._instance.remote.service_enable(self._name)
+        except Exception as e:
+            print(e)
+
+    def disable(self):
+        try:
+            self._instance.remote.service_disable(self._name)
+        except Exception as e:
+            print(e)
 
 
-class ServiceControlApplet(BaseApplet):
+class ServiceControlModel:
 
-    def __init__(self, model, root):
-        super(ServiceControlApplet, self).__init__(model, root)
-        self._model.subscribe(Client.EVENT_SERVICE_STATUS_CHANGED, self._on_service_update)
-        # FIXME: service_manager must be a model.
-        self.service_manager.initialize()
-        self._view = ServiceControlView(root, self)
+    def __init__(self, instance):
+        self._instance = instance
+        self.services = self._get_services()
+
+    def _get_services(self):
+        services = {}
+        for name in self._instance.remote.services_list():
+            service = Service(self._instance, name)
+            services[name] = service
+        return services
+
+    def update(self, service, config):
+        return self.services[service].update(config)
+
+    def subscribe(self, event, command):
+        self._instance.subscribe_to_event(event, command)
+
+
+class ServiceControlView(BaseView):
+    def __init__(self, controller):
+        super(ServiceControlView, self).__init__(controller)
+        self._control_panel_frame = ServiceControlPanelFrame(self, self._controller)
+        self._service_tree_frame = ServiceTreeFrame(self, self._controller)
+
+    def refresh(self, service):
+        self._service_tree_frame.refresh(service)
+        if service.unit == self.item:
+            self._control_panel_frame.refresh(service)
+
+    @property
+    def item(self):
+        return self._service_tree_frame.get_item()
+
+
+class ServiceControlController(BaseController):
+
+    _model_cls = ServiceControlModel
+    _view_cls = ServiceControlView
+
+    def __init__(self, root, instance):
+        super(ServiceControlController, self).__init__(root, instance=instance)
+        self._model.subscribe(instance.EVENT_SERVICE_STATUS_CHANGED, self._on_service_update)
 
     @property
     def service_manager(self):
-        return self._model.service_manager
+        return self._model
 
     def _on_service_update(self, service, config):
         # Update model
-        obj = self.service_manager.update(service, config)
+        obj = self._model.update(service, config)
         # Update view
         Thread(target=self._view.refresh, args=(obj, )).start()
 
@@ -53,22 +165,6 @@ class ServiceControlApplet(BaseApplet):
     def refresh_view(self, event):
         service = self.service_manager.services[self._view.item]
         self._view.refresh(service)
-
-
-class ServiceControlView(BaseView):
-    def __init__(self, master, controller):
-        super(ServiceControlView, self).__init__(master, controller)
-        self._control_panel_frame = ServiceControlPanelFrame(self, controller)
-        self._service_tree_frame = ServiceTreeFrame(self, controller)
-
-    def refresh(self, service):
-        self._service_tree_frame.refresh(service)
-        if service.unit == self.item:
-            self._control_panel_frame.refresh(service)
-
-    @property
-    def item(self):
-        return self._service_tree_frame.get_item()
 
 
 class ServiceTreeFrame(Frame, Refreshable):

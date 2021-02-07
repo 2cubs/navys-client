@@ -1,90 +1,99 @@
-from tkinter import Tk, Menu
-from tkinter import Frame, BOTH, X
-from tkinter.ttk import Label
+from tkinter import Frame, X, Label, BOTH, Menu, DISABLED, NORMAL
 
-from applets.applet_manager import AppletManagerApplet
+from applets.base import BaseController, BaseView
+from applets.applet_manager import AppletManagerController
+from client.Client import Client
 
 
-class MainWindow(Tk):
+class MainWindowModel:
+    def __init__(self):
+        self.title = 'Navy Client'
+        self.min_width = 900
+        self.min_height = 700
+        self.applet_manager = None
 
-    _min_width = 900
-    _min_height = 700
 
-    def __init__(self, model):
-        super(MainWindow, self).__init__()
-        self._model = model
-        self._build()
-        self._applet = None
+class MainWindowView(BaseView):
+    def __init__(self, controller):
+        super(MainWindowView, self).__init__(controller)
+        self._main_menu = MainMenu(self._controller)
+        self._applet_frame = AppletFrame(self._controller.root)
+        self._status_bar_frame = StatusBarFrame(self._controller.root)
 
-    def run(self):
-        self.mainloop()
+    @property
+    def applet_frame(self):
+        return self._applet_frame
 
-    def _build(self):
-        self.title('Navy Client')
-        self.geometry(f'{self._min_width}x{self._min_height}')
-        self.minsize(self._min_width, self._min_height)
-        self.main_menu = MainMenu(self)
-        self.config(menu=self.main_menu)
-        self.main_frame = MainFrame(self)
+    @property
+    def main_menu(self):
+        return self._main_menu
+
+
+class MainWindowController(BaseController):
+
+    _model_cls = MainWindowModel
+    _view_cls = MainWindowView
+
+    def __init__(self, root):
+        super(MainWindowController, self).__init__(root)
+        self._root.title(self._model.title)
+        self._root.geometry(f'{self._model.min_width}x{self._model.min_height}')
+        self._root.minsize(self._model.min_width, self._model.min_height)
+        self._root.config(menu=self._view.main_menu)
+
+    def disconnect(self):
+        self._model.applet_manager.stop()
 
     def connect(self):
         try:
-            self._model.connect()
+            # TODO: to be refactored
+            instance = Client.get_instance()
         except Exception as e:
-            print(e)
+            raise e
         else:
-            self.main_menu.remote_menu.entryconfig('Connect', state='disabled')
-            self.main_menu.remote_menu.entryconfig('Disconnect', state='normal')
-            self._applet = AppletManagerApplet(model=self._model, root=self.main_frame.applet_frame)
-            self._applet.run()
-
-    def disconnect(self):
-        try:
-            self._model.disconnect()
-        except Exception as e:
-            print(e)
-        finally:
-            self.main_menu.remote_menu.entryconfig('Connect', state='normal')
-            self.main_menu.remote_menu.entryconfig('Disconnect', state='disabled')
-            self._applet.close()
-
-    def exit(self):
-        try:
-            self._model.unsubscribe()
-        except Exception as e:
-            print(e)
-        finally:
-            self.quit()
-
-
-class MainMenu(Menu):
-
-    def __init__(self, master):
-        super(MainMenu, self).__init__(master)
-        self.remote_menu = Menu(self, tearoff=0)
-        self.remote_menu.add_command(label='Connect', command=master.connect)
-        self.remote_menu.add_command(label='Disconnect', state='disabled', command=master.disconnect)
-        self.remote_menu.add_separator()
-        self.remote_menu.add_command(label='Exit', command=master.exit)
-        self.add_cascade(label='Server', menu=self.remote_menu)
-
-
-class MainFrame(Frame):
-    def __init__(self, master):
-        super(MainFrame, self).__init__(master)
-        self.applet_frame = AppletFrame(self)
-        self.status_bar_frame = StatusBarFrame(self)
-        self.pack(expand=True, fill=BOTH)
+            self._model.applet_manager = AppletManagerController(self._view.applet_frame, instance=instance)
+            self._model.applet_manager.start()
 
 
 class StatusBarFrame(Frame):
-    def __init__(self, master):
-        super(StatusBarFrame, self).__init__(master)
+    def __init__(self, root):
+        super(StatusBarFrame, self).__init__(root)
         self.pack(fill=X)
         Label(self).pack()
 
 
 class AppletFrame(Frame):
-    def __init__(self, master):
-        super(AppletFrame, self).__init__(master)
+    def __init__(self, root):
+        super(AppletFrame, self).__init__(root)
         self.pack(expand=True, fill=BOTH)
+
+
+class MainMenu(Menu):
+    def __init__(self, controller):
+        super(MainMenu, self).__init__(controller.root)
+        self._controller = controller
+        self._server = Menu(self, tearoff=0)
+        self._server.add_command(label='Connect', command=self.connect)
+        self._server.add_command(label='Disconnect', state='disabled', command=self.disconnect)
+        self._server.add_separator()
+        self._server.add_command(label='Exit', command=self.exit)
+        self.add_cascade(label='Server', menu=self._server)
+
+    def exit(self):
+        self._controller.root.stop()
+
+    def connect(self):
+        try:
+            self._controller.connect()
+        except Exception as e:
+            print(e)
+        else:
+            self._server.entryconfig('Connect', state=DISABLED)
+            self._server.entryconfig('Disconnect', state=NORMAL)
+
+    def disconnect(self):
+        self._server.entryconfig('Connect', state=NORMAL)
+        self._server.entryconfig('Disconnect', state=DISABLED)
+        self._controller.disconnect()
+
+
