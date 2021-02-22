@@ -1,7 +1,7 @@
 from threading import Thread
 
 from applets import PADX, PADY
-from applets.base import BaseController, BaseView, Refreshable
+from applets.base import BaseController, BaseFrameView, Refreshable
 
 from tkinter import Frame, LEFT, END, BOTH, W, X, RIGHT, Y, VERTICAL, StringVar, DISABLED, NORMAL
 from tkinter.ttk import Treeview, Button, Scrollbar, Label
@@ -99,9 +99,9 @@ class ServiceControlModel:
         self._instance.subscribe_to_event(event, command)
 
 
-class ServiceControlView(BaseView):
+class ServiceControlFrameView(BaseFrameView):
     def __init__(self, controller):
-        super(ServiceControlView, self).__init__(controller)
+        super(ServiceControlFrameView, self).__init__(controller)
         self._control_panel_frame = ServiceControlPanelFrame(self, self._controller)
         self._service_tree_frame = ServiceTreeFrame(self, self._controller)
 
@@ -118,7 +118,7 @@ class ServiceControlView(BaseView):
 class ServiceControlController(BaseController):
 
     _model_cls = ServiceControlModel
-    _view_cls = ServiceControlView
+    _view_cls = ServiceControlFrameView
 
     def __init__(self, root, instance):
         super(ServiceControlController, self).__init__(root, instance=instance)
@@ -271,7 +271,10 @@ class ServiceTreeView(Treeview, Refreshable):
                 print(e)
 
         # Set initial focus
-        self.focus(self.get_children()[0])
+        try:
+            self.focus(self.get_children()[0])
+        except Exception as e:
+            print(e)
 
         # Bindings
         self.bind('<<TreeviewSelect>>', self._controller.refresh_view)

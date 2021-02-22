@@ -2,7 +2,7 @@ from tkinter import VERTICAL, RIGHT, Y, END, BOTH
 from tkinter.ttk import Treeview, Scrollbar
 
 from applets import PADX, PADY
-from applets.base import BaseView, BaseController
+from applets.base import BaseFrameView, BaseController
 
 
 class ServerInfoModel:
@@ -17,17 +17,17 @@ class ServerInfoModel:
         return dict(zip(keys, self._info))
 
 
-class ServerInfoView(BaseView):
+class ServerInfoFrameView(BaseFrameView):
 
     def __init__(self, controller):
-        super(ServerInfoView, self).__init__(controller)
+        super(ServerInfoFrameView, self).__init__(controller)
         self._system_info_tree_view = ServerInfoTreeView(self, controller)
 
 
 class ServerInfoController(BaseController):
 
     _model_cls = ServerInfoModel
-    _view_cls = ServerInfoView
+    _view_cls = ServerInfoFrameView
 
     @property
     def attributes(self):

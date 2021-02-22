@@ -3,7 +3,7 @@ from tkinter import PanedWindow, Frame, Scrollbar, VERTICAL, RIGHT, Y, BOTH, END
 from tkinter.ttk import Treeview
 
 from applets import PADX, PADY
-from applets.base import BaseView
+from applets.base import BaseFrameView
 from applets.base import BaseController
 
 
@@ -26,10 +26,10 @@ class AppletManagerModel:
             raise e
 
 
-class AppletManagerView(BaseView):
+class AppletManagerFrameView(BaseFrameView):
 
     def __init__(self, controller):
-        super(AppletManagerView, self).__init__(controller)
+        super(AppletManagerFrameView, self).__init__(controller)
         self._paned_window = AppletManagerPanedWindow(self, controller)
 
     @property
@@ -40,7 +40,7 @@ class AppletManagerView(BaseView):
 class AppletManagerController(BaseController):
 
     _model_cls = AppletManagerModel
-    _view_cls = AppletManagerView
+    _view_cls = AppletManagerFrameView
 
     def start_applet(self, applet):
         self.stop_applet()
