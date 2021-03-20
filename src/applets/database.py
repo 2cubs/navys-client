@@ -54,7 +54,6 @@ class DB:
         except Exception as e:
             print(e)
 
-
     def delete(self, table, **kwargs):
 
         fields, values = list(kwargs.keys()), list(kwargs.values())

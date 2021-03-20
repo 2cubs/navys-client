@@ -7,9 +7,10 @@ class BaseController:
     _model_cls = None
     _view_cls = None
 
-    def __init__(self, root, **kwargs):
-        self._root = root
-        self._model = self._model_cls(**kwargs)
+    def __init__(self, parent, **kwargs):
+        self._parent = parent
+        self._root = self._parent.root
+        self._model = self._model_cls(**kwargs) if self._model_cls else None
         self._view = self._view_cls(self)
 
     @property
@@ -29,12 +30,17 @@ class BaseFrameView(Frame):
         super().__init__(controller.root, **kwargs)
         self._root = controller.root
         self._controller = controller
+        self.__build__()
 
     def pack(self):
         super().pack(fill='both', expand=True)
 
     def forget(self):
         self.pack_forget()
+
+    @abstractmethod
+    def __build__(self):
+        pass
 
 
 class BaseToplevelView(Toplevel):
@@ -80,7 +86,7 @@ class BaseToplevelView(Toplevel):
     def __refresh__(self):
         pass
 
-    def close(self):
+    def forget(self):
         self.destroy()
 
 
@@ -94,7 +100,7 @@ class ModalManager:
         self._view = view(self._controller, **kwargs)
 
     def close(self):
-        self._view.close()
+        self._view.forget()
         self._view = None
 
     @property

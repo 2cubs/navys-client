@@ -129,9 +129,7 @@ class ServiceControlController(BaseController):
         return self._model
 
     def _on_service_update(self, service, config):
-        # Update model
         obj = self._model.update(service, config)
-        # Update view
         Thread(target=self._view.refresh, args=(obj, )).start()
 
     def start_service(self):

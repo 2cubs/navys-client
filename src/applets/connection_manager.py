@@ -12,7 +12,6 @@ class Connection:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
-
 class ConnectionManagerModel:
 
     _db = DB()
@@ -66,19 +65,20 @@ class ConnectionMaintenanceView(BaseToplevelView):
     def __build__(self):
         # Entries Frame
         frame = Frame(self)
-        self._entries = {'name': LabeledEntry(frame, label='Name:', hint='Short description.'),
+        self._entries = {'description': LabeledEntry(frame, label='Description:', hint='Short description.'),
                          'host': LabeledEntry(frame, label='Host:', hint='URL or IP address.'),
+                         'host_name': LabeledEntry(frame, label='Host name:', hint='Server host name.'),
                          'socket': LabeledEntry(frame, label='Port:', hint='Port number.'),
                          'path': LabeledEntry(frame, label='Path:', hint='Path to SSL certificates.',
                                               search_help=self._help_path)}
 
         for key, widget in self._entries.items():
-            widget.columnconfigure(0, minsize=50)
+            widget.columnconfigure(0, minsize=70)
             widget.entry.config(width=50)
             widget.pack(anchor='nw')
 
         self._entries['socket'].entry.config(width=5)
-        self._entries['name'].register(self._trace_name)
+        self._entries['description'].register(self._trace_description)
         self._entries['socket'].register(self._trace_socket)
 
         frame.pack(fill='both', expand=True, padx=20, pady=20)
@@ -87,9 +87,9 @@ class ConnectionMaintenanceView(BaseToplevelView):
         self._controls = Frame(self, bg='light gray')
         self._controls.pack(fill=X)
 
-    def _trace_name(self, *args):
-        if len(self._entries['name'].value) > 20:
-            self._entries['name'].value = self._entries['name'].value[:20]
+    def _trace_description(self, *args):
+        if len(self._entries['description'].value) > 20:
+            self._entries['description'].value = self._entries['description'].value[:20]
 
     def _trace_socket(self, *args):
         try:
@@ -162,7 +162,7 @@ class ConnectionManagerView(BaseToplevelView):
         self._tree.config(yscrollcommand=scrollbar.set)
 
         for column in self._tree['columns']:
-            self._tree.heading(column, text=column.title())
+            self._tree.heading(column, text=column.replace('_', ' ').title())
             self._tree.column(column, width=100, stretch=False)
         self._tree.column(self._tree['columns'][-1], stretch=True)
         self._tree.heading('#0', text=iid)
@@ -195,7 +195,7 @@ class ConnectionManagerView(BaseToplevelView):
                 print(e)
 
     def _connect(self):
-        raise NotImplementedError
+        self._controller.connect()
 
     def _create(self):
         self._controller.create_connection()
@@ -216,6 +216,11 @@ class ConnectionManager(BaseController):
         super(ConnectionManager, self).__init__(root)
 
     @property
+    def focus(self):
+        return vars(self._model.connections[self._view.focus])
+
+    @property
+    # TODO: refatctor this - shouldn't be here
     def table(self):
         pk = self._model.pk
         cols = [col for col in self._model.columns if col != pk]
@@ -225,10 +230,9 @@ class ConnectionManager(BaseController):
     def connections(self):
         return self._model.connections
 
-    # FIXME: rename?
-    @property
-    def focus(self):
-        return vars(self._model.connections[self._view.focus])
+    def connect(self):
+        self._parent.connect(vars(self._model.connections[self._view.focus]))
+        self.stop()
 
     def create_connection(self):
         self._view.modal.open(view=NewConnectionView)

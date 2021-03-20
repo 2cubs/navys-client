@@ -21,12 +21,12 @@ def my_event_cb(service, config):
 
 
 if __name__ == '__main__':
-    app = Client.get_instance()
-    app.subscribe_to_event(Client.EVENT_SERVICE_STATUS_CHANGED, my_event_cb)
-    # remote: Remote = app.remote
+    app = Client.get_instance(server_hostname="tst")
+    # app.subscribe_to_event(Client.EVENT_SERVICE_STATUS_CHANGED, my_event_cb)
+    remote: Remote = app.remote
 
-    sd = ServerInfoModel(app)
-    print(sd.info)
+    # sd = ServerInfoModel(app)
+    # print(sd.info)
 
     # print(f'Server Time: {app.remote.server_info()}')
 
