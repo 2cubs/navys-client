@@ -79,7 +79,7 @@ class InstanceView(PanedWindow):
         self.add(navi_frame, minsize=200)
         self.add(self._applet_frame)
 
-        # Pack paned window
+        # Packing
         self.pack(fill='both', expand=True)
 
     def _start_applet(self, event=None):

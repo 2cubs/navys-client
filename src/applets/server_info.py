@@ -1,69 +1,77 @@
-from tkinter import VERTICAL, RIGHT, Y, END, BOTH
+from datetime import datetime
+from tkinter import VERTICAL, RIGHT, Y, END, BOTH, Frame
 from tkinter.ttk import Treeview, Scrollbar
 
+from pydantic import validator
+from pydantic.dataclasses import dataclass
+
 from applets import PADX, PADY
-from applets.base import BaseFrameView, BaseController
 
 
-class ServerInfoModel:
-
-    def __init__(self, instance):
-        self._instance = instance
-        self._info = self._instance.remote.server_info()['uname']
-
-    @property
-    def info(self):
-        keys = ['sysname', 'nodename', 'release', 'version', 'machine']
-        return dict(zip(keys, self._info))
+@dataclass
+class UName:
+    system_name: str
+    node_name: str
+    release: str
+    version: str
+    machine: str
+    processor: str
 
 
-class ServerInfoFrameView(BaseFrameView):
+@dataclass
+class ServerInfo:
+    uname: UName
+    current_time: datetime
 
-    def __init__(self, controller):
-        super(ServerInfoFrameView, self).__init__(controller)
-        self._system_info_tree_view = ServerInfoTreeView(self, controller)
-
-
-class ServerInfoController(BaseController):
-
-    _model_cls = ServerInfoModel
-    _view_cls = ServerInfoFrameView
-
-    @property
-    def attributes(self):
-        return self._model.info
+    @validator('uname', pre=True)
+    def set_uname(cls, value):
+        return dict(zip(['system_name', 'node_name', 'release', 'version', 'machine', 'processor'], value))
 
 
-class ServerInfoTreeView(Treeview):
+class ServerInfoView(Frame):
 
-    _columns = ['item', 'value']
-    _rows = {'sysname': 'System name',
-             'nodename': 'Node name',
-             'release': 'Release',
-             'version': 'Version',
-             'machine': 'Machine'}
-
-    def __init__(self, master, controller):
-        super(ServerInfoTreeView, self).__init__(master)
+    def __init__(self, root, controller):
+        super(ServerInfoView, self).__init__(root)
         self._controller = controller
-        self._build()
 
-    def _build(self):
+        # Tree initialization
+        tree = Treeview(self)
+        columns = ['item', 'value']
+
         # Scrollbar initialization
-        scrollbar = Scrollbar(self, orient=VERTICAL, command=self.yview)
+        scrollbar = Scrollbar(tree, orient=VERTICAL, command=tree.yview)
         scrollbar.pack(side=RIGHT, fill=Y)
 
         # TreeView configuration
-        self.config(columns=self._columns, show='headings', yscrollcommand=scrollbar.set)
+        tree.config(columns=columns, show='headings', yscrollcommand=scrollbar.set)
 
         # Items initialization
-        for col in self._columns:
-            self.heading(col, text=col.title())
-            self.column(col, width=100, stretch=False)
+        for col in columns:
+            tree.heading(col, text=col.title())
+            tree.column(col, width=100, stretch=False)
 
-        self.column(self._columns[-1], stretch=True)
+        tree.column(columns[-1], stretch=True)
 
-        for key, value in self._rows.items():
-            self.insert('', END, text='attrib', values=[value, self._controller.attributes.get(key, '')])
+        try:
+            for key, value in vars(self._controller.model.uname).items():
+                if not key.startswith('_'):
+                    key = key.replace('_', ' ').capitalize()
+                    tree.insert('', END, text='attrib', values=[key, value])
+        except Exception as e:
+            print(e)
 
-        self.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
+        # Packing
+        tree.pack(padx=PADX, pady=PADY, fill=BOTH, expand=True)
+
+
+class ServerInfoController:
+
+    def __init__(self, root, instance):
+        self.model = ServerInfo(**instance.remote.server_info())
+        self.view = ServerInfoView(root=root, controller=self)
+
+    def start(self):
+        self.view.pack(fill='both', expand=True)
+
+    def stop(self):
+        self.view.pack_forget()
