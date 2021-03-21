@@ -1,3 +1,4 @@
+from pydantic import Field, BaseModel
 from threading import Thread
 
 from applets import PADX, PADY
@@ -7,96 +8,62 @@ from tkinter import Frame, LEFT, END, BOTH, W, X, RIGHT, Y, VERTICAL, StringVar,
 from tkinter.ttk import Treeview, Button, Scrollbar, Label
 
 
-class Service:
-
-    def __init__(self, instance, name):
-        self._instance = instance
-        self._name = name
-        self.update(self._instance.remote.service_config(self._name))
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def update(self, attributes):
-        for key, value in attributes.items():
-            setattr(self, f'_{key}', value)
-        return self
-
-    @property
-    def is_running(self):
-        return getattr(self, '_started', False)
-
-    @property
-    def is_active(self):
-        return getattr(self, '_enabled', False)
-
-    @property
-    def unit(self):
-        return getattr(self, '_name')
-
-    @property
-    def load(self):
-        return 'loaded'
+class Service(BaseModel):
+    unit: str = Field(alias='name')
+    type: str
+    started: bool
+    enabled: bool
+    description: str
+    load: str = 'loaded'
 
     @property
     def active(self):
-        if self.is_active:
+        if self.enabled:
             return 'active'
         return 'inactive'
 
     @property
     def sub(self):
-        if self.is_running:
+        if self.started:
             return 'running'
         return 'stopped'
 
-    @property
-    def description(self):
-        return getattr(self, '_description', '')
 
-    def start(self):
-        try:
-            self._instance.remote.service_start(self._name)
-        except Exception as e:
-            print(e)
-
-    def stop(self):
-        try:
-            self._instance.remote.service_stop(self._name)
-        except Exception as e:
-            print(e)
-
-    def enable(self):
-        try:
-            self._instance.remote.service_enable(self._name)
-        except Exception as e:
-            print(e)
-
-    def disable(self):
-        try:
-            self._instance.remote.service_disable(self._name)
-        except Exception as e:
-            print(e)
-
-
-class ServiceControlModel:
-
+class ServicesList:
     def __init__(self, instance):
         self._instance = instance
-        self.services = self._get_services()
+        self.services = {key: Service(**value)
+                         for key, value in instance.remote.service_status(instance.remote.services_list()).items()}
 
-    def _get_services(self):
-        services = {}
-        for name in self._instance.remote.services_list():
-            service = Service(self._instance, name)
-            services[name] = service
-        return services
+    def update_service(self, service_name: str):
+        try:
+            self.services[service_name] = Service(**self._instance.remote.service_config(service_name))
+        except Exception as e:
+            print(e)
 
-    def update(self, service, config):
-        return self.services[service].update(config)
+    def start_service(self, service_name: str):
+        try:
+            self._instance.remote.service_start(service_name)
+        except Exception as e:
+            print(e)
 
-    def subscribe(self, event, command):
-        self._instance.subscribe_to_event(event, command)
+    def stop_service(self, service_name):
+        try:
+            self._instance.remote.service_stop(service_name)
+        except Exception as e:
+            print(e)
+
+    def enable_service(self, service_name):
+        try:
+            self._instance.remote.service_enable(service_name)
+        except Exception as e:
+            print(e)
+
+    def disable_service(self, service_name):
+        try:
+            self._instance.remote.service_disable(service_name)
+        except Exception as e:
+            print(e)
 
 
 class ServiceControlFrameView(BaseFrameView):
@@ -117,12 +84,16 @@ class ServiceControlFrameView(BaseFrameView):
 
 class ServiceControlController(BaseController):
 
-    _model_cls = ServiceControlModel
+    _model_cls = ServicesList
     _view_cls = ServiceControlFrameView
 
     def __init__(self, root, instance):
         super(ServiceControlController, self).__init__(root, instance=instance)
+        self._instance = instance
         self._model.subscribe(instance.EVENT_SERVICE_STATUS_CHANGED, self._on_service_update)
+
+    def subscribe(self, event, command):
+        self._instance.subscribe_to_event(event, command)
 
     @property
     def service_manager(self):
