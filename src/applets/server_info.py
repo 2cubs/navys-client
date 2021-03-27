@@ -53,7 +53,7 @@ class ServerInfoView(Frame):
         tree.column(columns[-1], stretch=True)
 
         try:
-            for key, value in vars(self._controller.model.uname).items():
+            for key, value in vars(self._controller.attributes).items():
                 if not key.startswith('_'):
                     key = key.replace('_', ' ').capitalize()
                     tree.insert('', END, text='attrib', values=[key, value])
@@ -67,11 +67,15 @@ class ServerInfoView(Frame):
 class ServerInfoController:
 
     def __init__(self, root, instance):
-        self.model = ServerInfo(**instance.remote.server_info())
-        self.view = ServerInfoView(root=root, controller=self)
+        self._model = ServerInfo(**instance.remote.server_info())
+        self._view = ServerInfoView(root=root, controller=self)
+
+    @property
+    def attributes(self):
+        return self._model.uname
 
     def start(self):
-        self.view.pack(fill='both', expand=True)
+        self._view.pack(fill='both', expand=True)
 
     def stop(self):
-        self.view.pack_forget()
+        self._view.pack_forget()

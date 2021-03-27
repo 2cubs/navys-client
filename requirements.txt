@@ -1,1 +1,2 @@
 git+https://github.com/2cubs/lib2cubs-applevel-com.git#egg=lib2cubs-applevel-com>=0.4.4
+pydantic
