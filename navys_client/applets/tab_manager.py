@@ -1,6 +1,6 @@
 from tkinter import PhotoImage
 from tkinter.ttk import Notebook, Style
-from applets.instance_manager import InstanceController
+from navys_client.applets.instance_manager import InstanceController
 
 
 class TabView(Notebook):

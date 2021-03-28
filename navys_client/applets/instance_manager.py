@@ -2,7 +2,7 @@ from importlib import import_module
 from tkinter import PanedWindow, Frame, Scrollbar, VERTICAL, RIGHT, Y, BOTH, END
 from tkinter.ttk import Treeview
 
-from applets import PADX, PADY
+from navys_client.applets import PADX, PADY
 
 
 class Instance:

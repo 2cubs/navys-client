@@ -1,8 +1,8 @@
 from tkinter import Label, Frame
 
-from applets.base import BaseController, BaseFrameView
-from applets.connection_manager import ConnectionManager
-from applets.tab_manager import TabController
+from navys_client.applets.base import BaseController, BaseFrameView
+from navys_client.applets.connection_manager import ConnectionManagerController
+from navys_client.applets.tab_manager import TabController
 
 
 class MainWindowView(BaseFrameView):
@@ -34,7 +34,7 @@ class MainWindowController(BaseController):
         self.tab_controller = TabController(root=self._view.mainframe)
 
     def invoke_connection_manager(self):
-        ConnectionManager(self._parent)
+        ConnectionManagerController(self._parent)
 
     def add_tab(self, instance, text):
         self.tab_controller.add_tab(instance, text)

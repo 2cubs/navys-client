@@ -5,7 +5,7 @@ from tkinter.ttk import Treeview, Scrollbar
 from pydantic import validator
 from pydantic.dataclasses import dataclass
 
-from applets import PADX, PADY
+from navys_client.applets import PADX, PADY
 
 
 @dataclass

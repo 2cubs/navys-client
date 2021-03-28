@@ -1,12 +1,12 @@
 from pydantic import Field, BaseModel
 from threading import Thread
 
-from applets import PADX, PADY
+from navys_client.applets import PADX, PADY
 
 from tkinter import Frame, LEFT, END, BOTH, W, X, RIGHT, Y, VERTICAL, StringVar, DISABLED
 from tkinter.ttk import Treeview, Button, Scrollbar, Label
 
-from widgets.switchable_button import SwitchableButton
+from navys_client.widgets.switchable_button import SwitchableButton
 
 
 class Service(BaseModel):
@@ -92,7 +92,6 @@ class ServiceControlView(Frame):
         self._vars = {}
 
         # Service details
-
         for i in range(len(self._columns)):
             text = self._columns[i]
             text = text.title()
@@ -115,7 +114,7 @@ class ServiceControlView(Frame):
         self._tree.column('#0', width=150, stretch=False)
 
         # Columns initialization
-        for column in self._columns[1:]:
+        for column in self._tree['columns']:
             self._tree.heading(column, text=column.title())
             self._tree.column(column, width=100, stretch=False)
 

@@ -4,8 +4,8 @@ from tkinter.ttk import Button
 
 class SwitchableButton(Button):
 
-    def __init__(self, master, switches, **kw):
-        super(SwitchableButton, self).__init__(master, **kw)
+    def __init__(self, master, switches, **kwargs):
+        super(SwitchableButton, self).__init__(master, **kwargs)
         self._switches = switches
 
     def switch(self, state):

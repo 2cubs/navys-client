@@ -1,16 +1,17 @@
 from tkinter import Frame, BOTH, X, LEFT, Scrollbar, VERTICAL, RIGHT, Y, END, filedialog
 from tkinter.ttk import Treeview, Button, Separator
 
-from applets import PADX, PADY
-from applets.base import BaseController, BaseToplevelView
-from applets.database import DB
-from widgets.labled_entry import LabeledEntry
+from navys_client.applets import PADX, PADY
+from navys_client.applets.base import BaseController, BaseToplevelView
+from navys_client.applets.database import DB
+from navys_client.widgets import LabeledEntry, CustomToplevel
 
 
 class Connection:
 
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
 
 class ConnectionManagerModel:
 
@@ -58,11 +59,14 @@ class ConnectionManagerModel:
             self.connections = self.refresh()
 
 
-class ConnectionMaintenanceView(BaseToplevelView):
+class ConnectionMaintenanceView(CustomToplevel):
 
     _is_resizable = False
 
-    def __build__(self):
+    def __init__(self, root, controller):
+        self._controller = controller
+        super(ConnectionMaintenanceView, self).__init__(root)
+
         # Entries Frame
         frame = Frame(self)
         self._entries = {'description': LabeledEntry(frame, label='Description:', hint='Short description.'),
@@ -109,40 +113,49 @@ class NewConnectionView(ConnectionMaintenanceView):
 
     _title = 'New Connection'
 
-    def __build__(self):
-        super(NewConnectionView, self).__build__()
+    def __init__(self, root, controller):
+        super(NewConnectionView, self).__init__(root, controller)
         Button(self._controls, text='Create', command=self._create).pack(side=RIGHT, padx=PADX, pady=PADY)
 
     def _create(self):
-        self._controller.insert(**{key: entry.value for key, entry in self._entries.items()})
+        try:
+            self._controller.insert(**{key: entry.value for key, entry in self._entries.items()})
+        except Exception as e:
+            print(e)
 
 
 class ChangeConnectionView(ConnectionMaintenanceView):
 
     _title = 'Change Connection'
 
-    def __build__(self):
-        super(ChangeConnectionView, self).__build__()
+    def __init__(self, root, controller):
+        super(ChangeConnectionView, self).__init__(root, controller)
         Button(self._controls, text='Change', command=self._change).pack(side=RIGHT, padx=PADX, pady=PADY)
 
-    def __refresh__(self):
-        for key, value in self._controller.focus.items():
-            try:
+    def refresh(self):
+        try:
+            for key, value in self._controller.focus.items():
                 self._entries[key].value = value
-            except Exception as e:
-                print(e)
+        except Exception as e:
+            print(e)
 
     def _change(self):
-        self._controller.update(**{key: entry.value for key, entry in self._entries.items()})
+        try:
+            self._controller.update(**{key: entry.value for key, entry in self._entries.items()})
+        except Exception as e:
+            print(e)
 
 
-class ConnectionManagerView(BaseToplevelView):
+class ConnectionManagerView(CustomToplevel):
 
     _title = 'Connections'
     _width = 450
     _height = 350
 
-    def __build__(self):
+    def __init__(self, root, controller):
+        super(ConnectionManagerView, self).__init__(root)
+        self._controller = controller
+        columns = ['iid', 'description', 'host', 'host_name', 'socket', 'path']
 
         # Toolbar
         toolbar = Frame(self)
@@ -155,8 +168,7 @@ class ConnectionManagerView(BaseToplevelView):
 
         # TreeView
         frame = Frame(self)
-        iid, columns = self._controller.table
-        self._tree = Treeview(frame, columns=columns, selectmode='browse', show='headings')
+        self._tree = Treeview(frame, columns=columns[1:], selectmode='browse', show='headings')
         scrollbar = Scrollbar(self._tree, orient=VERTICAL, command=self._tree.yview)
         scrollbar.pack(side=RIGHT, fill=Y)
         self._tree.config(yscrollcommand=scrollbar.set)
@@ -165,7 +177,7 @@ class ConnectionManagerView(BaseToplevelView):
             self._tree.heading(column, text=column.replace('_', ' ').title())
             self._tree.column(column, width=100, stretch=False)
         self._tree.column(self._tree['columns'][-1], stretch=True)
-        self._tree.heading('#0', text=iid)
+        self._tree.heading('#0', text=columns[0])
         self.refresh()
 
         try:
@@ -187,40 +199,50 @@ class ConnectionManagerView(BaseToplevelView):
         for row in self._tree.get_children():
             self._tree.delete(row)
 
-        for key, value in self._controller.connections.items():
-            try:
+        try:
+            for key, value in self._controller.connections.items():
                 values = [getattr(value, col, None) for col in self._tree['columns']]
                 self._tree.insert('', END, iid=key, text=key, values=values)
-            except Exception as e:
-                print(e)
+        except Exception as e:
+            print(e)
 
     def _connect(self):
-        self._controller.connect()
+        try:
+            self._controller.connect()
+        except Exception as e:
+            print(e)
 
     def _create(self):
-        self._controller.create_connection()
+        try:
+            self._controller.create_connection()
+        except Exception as e:
+            print(e)
 
     def _change(self):
-        self._controller.change_connection()
+        try:
+            self._controller.change_connection()
+        except Exception as e:
+            print(e)
 
     def _delete(self):
-        self._controller.delete_connection()
+        try:
+            self._controller.delete_connection()
+        except Exception as e:
+            print(e)
 
 
-class ConnectionManager(BaseController):
-
-    _view_cls = ConnectionManagerView
-    _model_cls = ConnectionManagerModel
+class ConnectionManagerController:
 
     def __init__(self, root):
-        super(ConnectionManager, self).__init__(root)
+        self._model = ConnectionManagerModel()
+        self._view = ConnectionManagerView(root=root, controller=self)
 
     @property
     def focus(self):
         return vars(self._model.connections[self._view.focus])
 
     @property
-    # TODO: refatctor this - shouldn't be here
+    # TODO: refactor this - shouldn't be here
     def table(self):
         pk = self._model.pk
         cols = [col for col in self._model.columns if col != pk]
@@ -256,4 +278,11 @@ class ConnectionManager(BaseController):
         self._model.update(self._view.focus, **kwargs)
         self._view.modal.close()
         self._view.refresh()
+
+    def start(self):
+        self._view.pack(fill='both', expand=True)
+
+    def stop(self):
+        self._view.pack_forget()
+
 

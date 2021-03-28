@@ -3,9 +3,9 @@ __author__ = 'Alexey Elizarov (alexei.elizarov@gmail.com)'
 
 from tkinter import Tk, Menu
 
-from applets.connection_manager import ConnectionManager
-from applets.main_window import MainWindowController
-from client.Client import Client
+from navys_client.applets.connection_manager import ConnectionManagerController
+from navys_client.applets.main_window import MainWindowController
+from navys_client.client.Client import Client
 
 
 class App(Tk):
@@ -34,7 +34,7 @@ class App(Tk):
         return self
 
     def connection_manager(self):
-        ConnectionManager(self)
+        ConnectionManagerController(self)
 
     def connect(self, kwargs):
         params = {'host': 'host',
